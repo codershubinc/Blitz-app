@@ -19,6 +19,8 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.blitzapp.remote.ui.*
@@ -74,13 +76,20 @@ fun MainScreen(
     val error by viewModel.error
     val artWork by viewModel.artWork
 
+    // State to hold dynamic colors
+    val dynamicColors = remember { mutableStateOf(DynamicColors()) }
+
     Box(modifier = Modifier.fillMaxSize()) {
         when (widthSizeClass) {
             WindowWidthSizeClass.Compact -> {
-                PortraitLayout(mediaInfo, bluetoothDevices, commandOutput, error, connectionStatus, onConnect, onCommand, artWork)
+                PortraitLayout(mediaInfo, bluetoothDevices, commandOutput, error, connectionStatus, onConnect, onCommand, artWork, dynamicColors.value) { newColors ->
+                    dynamicColors.value = newColors
+                }
             }
             else -> {
-                LandscapeLayout(mediaInfo, bluetoothDevices, commandOutput, error, connectionStatus, onConnect, onCommand, artWork)
+                LandscapeLayout(mediaInfo, bluetoothDevices, commandOutput, error, connectionStatus, onConnect, onCommand, artWork, dynamicColors.value) { newColors ->
+                    dynamicColors.value = newColors
+                }
             }
         }
         WifiSpeedIndicator(wifiInfo = wifiInfo)
@@ -96,16 +105,18 @@ fun PortraitLayout(
     connectionStatus: Boolean,
     onConnect: (String, String, String) -> Unit,
     onCommand: (String) -> Unit,
-    artWork: ArtWork?
+    artWork: ArtWork?,
+    dynamicColors: DynamicColors,
+    onColorsUpdate: (DynamicColors) -> Unit
 ) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        Header()
+        Header(dynamicColors = dynamicColors)
         ErrorCard(error = error)
-        ConnectionCard(isConnected = connectionStatus, onConnect = onConnect)
-        NowPlayingCard(mediaInfo = mediaInfo, onCommand = onCommand, artWork = artWork?.url)
-        BluetoothDevicesCard(devices = bluetoothDevices)
-        QuickActionsCard(onCommand = onCommand)
-        SystemOutputCard(output = commandOutput)
+        ConnectionCard(isConnected = connectionStatus, onConnect = onConnect, dynamicColors = dynamicColors)
+        NowPlayingCard(mediaInfo = mediaInfo, onCommand = onCommand, onColorsUpdate = onColorsUpdate)
+        BluetoothDevicesCard(devices = bluetoothDevices, dynamicColors = dynamicColors)
+        QuickActionsCard(onCommand = onCommand, dynamicColors = dynamicColors)
+        SystemOutputCard(output = commandOutput, dynamicColors = dynamicColors)
     }
 }
 
@@ -118,7 +129,9 @@ fun LandscapeLayout(
     connectionStatus: Boolean,
     onConnect: (String, String, String) -> Unit,
     onCommand: (String) -> Unit,
-    artWork: ArtWork?
+    artWork: ArtWork?,
+    dynamicColors: DynamicColors,
+    onColorsUpdate: (DynamicColors) -> Unit
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -126,9 +139,9 @@ fun LandscapeLayout(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
         ) {
-            Header()
-            ConnectionCard(isConnected = connectionStatus, onConnect = onConnect)
-            NowPlayingCard(mediaInfo = mediaInfo, onCommand = onCommand, artWork = artWork?.url)
+            Header(dynamicColors = dynamicColors)
+            ConnectionCard(isConnected = connectionStatus, onConnect = onConnect, dynamicColors = dynamicColors)
+            NowPlayingCard(mediaInfo = mediaInfo, onCommand = onCommand, onColorsUpdate = onColorsUpdate)
         }
         Column(
             modifier = Modifier
@@ -137,9 +150,9 @@ fun LandscapeLayout(
                 .padding(top = 80.dp)
         ) {
             ErrorCard(error = error)
-            BluetoothDevicesCard(devices = bluetoothDevices)
-            QuickActionsCard(onCommand = onCommand)
-            SystemOutputCard(output = commandOutput)
+            BluetoothDevicesCard(devices = bluetoothDevices, dynamicColors = dynamicColors)
+            QuickActionsCard(onCommand = onCommand, dynamicColors = dynamicColors)
+            SystemOutputCard(output = commandOutput, dynamicColors = dynamicColors)
         }
     }
 }
