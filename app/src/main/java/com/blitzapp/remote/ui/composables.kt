@@ -38,7 +38,7 @@ private fun Double.format(decimals: Int) = "%.${decimals}f".format(this)
 
 // Helper function to format network speed with auto-scaling
 private fun formatSpeed(mbps: Double?): String {
-    Log.d("wifi speed" , mbps.toString())
+    // Log.d("wifi speed" , mbps.toString())
     if (mbps == null) return "0 Kbps"
     return when {
         mbps >= 1000 -> "${(mbps / 1000).format(1)} Gbps"
