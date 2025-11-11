@@ -355,6 +355,21 @@ fun NowPlayingCard(
         Box(modifier = Modifier.fillMaxWidth()) {
             // Blurred background artwork with crossfade
             val artworkData = mediaInfo?.albumArt
+            val isPlaying = mediaInfo?.status == "Playing"
+
+            // Animated blur value based on playing state
+            val blurAmount by animateDpAsState(
+                targetValue = if (isPlaying) 30.dp else 50.dp,
+                animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                label = "blur_animation"
+            )
+
+            // Animated overlay alpha based on playing state
+            val overlayAlpha by animateFloatAsState(
+                targetValue = if (isPlaying) 0.5f else 0.7f,
+                animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                label = "overlay_animation"
+            )
 
             // Background layer with blur
             Box(modifier = Modifier.matchParentSize()) {
@@ -386,7 +401,7 @@ fun NowPlayingCard(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .blur(50.dp)
+                                            .blur(blurAmount)
                                     )
                                 }
                             } else {
@@ -396,16 +411,16 @@ fun NowPlayingCard(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .blur(50.dp)
+                                        .blur(blurAmount)
                                 )
                             }
                         }
 
-                        // Dark overlay always on top of blur
+                        // Dark overlay always on top of blur with animated alpha
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.6f))
+                                .background(Color.Black.copy(alpha = overlayAlpha))
                         )
                     }
                 }
