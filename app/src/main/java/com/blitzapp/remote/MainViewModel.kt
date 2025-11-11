@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 
 class MainViewModel : ViewModel() {
     val connectionStatus = mutableStateOf(false)
+    val isConnecting = mutableStateOf(false)
     val mediaInfo = mutableStateOf<MediaInfo?>(null)
     val artWork = mutableStateOf<ArtWork?>(null) // Added for separate artwork
     val bluetoothDevices = mutableStateOf<List<BluetoothDevice>>(emptyList())
@@ -14,6 +15,10 @@ class MainViewModel : ViewModel() {
 
     fun updateConnectionStatus(isConnected: Boolean) {
         connectionStatus.value = isConnected
+    }
+
+    fun updateConnectingStatus(connecting: Boolean) {
+        isConnecting.value = connecting
     }
 
     fun updateMediaInfo(info: MediaInfo?) {

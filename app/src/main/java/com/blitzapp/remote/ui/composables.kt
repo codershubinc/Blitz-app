@@ -3,9 +3,12 @@ package com.blitzapp.remote.ui
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -16,8 +19,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -29,8 +32,14 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.blitzapp.remote.BluetoothDevice
 import com.blitzapp.remote.MediaInfo
+import com.blitzapp.remote.MainViewModel
 import com.blitzapp.remote.WiFiInfo
 import com.blitzapp.remote.ui.theme.*
+import androidx.compose.ui.draw.clip
+
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 
 // Dynamic color data class
 data class DynamicColors(
@@ -170,19 +179,78 @@ fun ErrorCard(error: String?) {
 }
 
 @Composable
-fun Header(dynamicColors: DynamicColors = DynamicColors()) {
+fun ConnectingCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = PrimaryAccent,
+                strokeWidth = 3.dp
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = "Connecting to server...",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun Header(
+    dynamicColors: DynamicColors = DynamicColors(),
+    onSettingsClick: (() -> Unit)? = null,
+    isConnected: Boolean = false
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(dynamicColors.background)
-            .padding(16.dp)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = "⚡ BLITZ REMOTE",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            color = dynamicColors.primary,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f)
         )
+
+        if (onSettingsClick != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Connection status dot
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .background(
+                            color = if (isConnected) Success else Error,
+                            shape = CircleShape
+                        )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = onSettingsClick) {
+                    Text(
+                        text = "⚙️",
+                        fontSize = 32.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -271,68 +339,90 @@ fun NowPlayingCard(
 ) {
     var dynamicColors by remember { mutableStateOf(DynamicColors()) }
 
+    // Animation states
+    val scale by animateFloatAsState(
+        targetValue = if (mediaInfo != null) 1f else 0.95f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "scale"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(8.dp)
+            .scale(scale),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
         shape = RoundedCornerShape(16.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            // Blurred background artwork
+            // Blurred background artwork with crossfade
             val artworkData = mediaInfo?.albumArt
 
-            if (!artworkData.isNullOrBlank()) {
-                if (artworkData.startsWith("data:")) {
-                    // Base64 blurred background
-                    val imageBitmap = remember(artworkData) {
-                        try {
-                            val pureBase64 = artworkData.substringAfter(',')
-                            val decodedBytes = Base64.decode(pureBase64, Base64.DEFAULT)
-                            BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)?.asImageBitmap()
-                        } catch (_: Exception) {
-                            null
-                        }
-                    }
+            // Background layer with blur
+            Box(modifier = Modifier.matchParentSize()) {
+                AnimatedContent(
+                    targetState = artworkData,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(600)) togetherWith
+                                fadeOut(animationSpec = tween(600))
+                    },
+                    label = "background_transition"
+                ) { currentArtwork ->
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        if (!currentArtwork.isNullOrBlank()) {
+                            if (currentArtwork.startsWith("data:")) {
+                                val imageBitmap = remember(currentArtwork) {
+                                    try {
+                                        val pureBase64 = currentArtwork.substringAfter(',')
+                                        val decodedBytes = Base64.decode(pureBase64, Base64.DEFAULT)
+                                        BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)?.asImageBitmap()
+                                    } catch (_: Exception) {
+                                        null
+                                    }
+                                }
 
-                    imageBitmap?.let {
-                        Image(
-                            bitmap = it,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
+                                imageBitmap?.let {
+                                    Image(
+                                        bitmap = it,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .blur(50.dp)
+                                    )
+                                }
+                            } else {
+                                AsyncImage(
+                                    model = currentArtwork,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .blur(50.dp)
+                                )
+                            }
+                        }
+
+                        // Dark overlay always on top of blur
+                        Box(
                             modifier = Modifier
-                                .matchParentSize()
-                                .blur(50.dp)
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.6f))
                         )
                     }
-                } else {
-                    // CDN URL blurred background
-                    AsyncImage(
-                        model = artworkData,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .matchParentSize()
-                            .blur(50.dp)
-                    )
                 }
-
-                // Dark overlay for better text readability
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                )
             }
 
-            // Content on top of blurred background
+            // Content on top
             Column(
                 modifier = Modifier
                     .padding(20.dp)
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Calculate contrasting color for text
                 val textColor = Color.White
                 val accentColor = getOppositeColor(dynamicColors.primary)
 
@@ -345,105 +435,142 @@ fun NowPlayingCard(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Album artwork (sharp, not blurred)
-                Box(
-                    modifier = Modifier
-                        .size(200.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(3.dp, accentColor, RoundedCornerShape(16.dp))
-                        .background(Color.Black)
-                ) {
-                    if (artworkData.isNullOrBlank()) {
-                        Text("🖼", fontSize = 80.sp, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.Center))
-                    } else if (artworkData.startsWith("data:")) {
-                        val imageBitmap = remember(artworkData) {
-                            try {
-                                val pureBase64 = artworkData.substringAfter(',')
-                                val decodedBytes = Base64.decode(pureBase64, Base64.DEFAULT)
-                                BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-                            } catch (_: Exception) {
-                                null
-                            }
-                        }
-
-                        LaunchedEffect(imageBitmap) {
-                            if (imageBitmap != null) {
-                                val colors = extractColorsFromBitmap(imageBitmap)
-                                dynamicColors = colors
-                                onColorsUpdate(colors)
-                            }
-                        }
-
-                        if (imageBitmap != null) {
-                            Image(
-                                bitmap = imageBitmap.asImageBitmap(),
-                                contentDescription = "Album Art",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Text("⚠️", fontSize = 80.sp, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.Center))
-                        }
-                    } else {
-                        var imageLoaded by remember(artworkData) { mutableStateOf(false) }
-
-                        AsyncImage(
-                            model = artworkData,
-                            contentDescription = "Album Art",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                            onSuccess = { state ->
-                                if (!imageLoaded) {
-                                    imageLoaded = true
-                                    val drawable = state.result.drawable
-
-                                    val bitmap = when (drawable) {
-                                        is android.graphics.drawable.BitmapDrawable -> {
-                                            drawable.bitmap
-                                        }
-                                        else -> {
-                                            try {
-                                                val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 100
-                                                val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 100
-                                                val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                                                val canvas = android.graphics.Canvas(bmp)
-                                                drawable.setBounds(0, 0, canvas.width, canvas.height)
-                                                drawable.draw(canvas)
-                                                bmp
-                                            } catch (_: Exception) {
-                                                null
-                                            }
-                                        }
-                                    }
-
-                                    bitmap?.let {
-                                        val colors = extractColorsFromBitmap(it)
-                                        dynamicColors = colors
-                                        onColorsUpdate(colors)
-                                    }
+                // Album artwork with animated crossfade and scale
+                AnimatedContent(
+                    targetState = artworkData,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(500)) +
+                                scaleIn(
+                                    initialScale = 0.85f,
+                                    animationSpec = tween(500, easing = FastOutSlowInEasing)
+                                )).togetherWith(
+                            fadeOut(animationSpec = tween(300)) +
+                                    scaleOut(
+                                        targetScale = 0.95f,
+                                        animationSpec = tween(300)
+                                    )
+                        )
+                    },
+                    label = "artwork_transition"
+                ) { currentArtwork ->
+                    Box(
+                        modifier = Modifier
+                            .size(200.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(3.dp, accentColor, RoundedCornerShape(16.dp))
+                            .background(Color.Black)
+                    ) {
+                        if (currentArtwork.isNullOrBlank()) {
+                            Text("🖼", fontSize = 80.sp, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.Center))
+                        } else if (currentArtwork.startsWith("data:")) {
+                            val imageBitmap = remember(currentArtwork) {
+                                try {
+                                    val pureBase64 = currentArtwork.substringAfter(',')
+                                    val decodedBytes = Base64.decode(pureBase64, Base64.DEFAULT)
+                                    BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                                } catch (_: Exception) {
+                                    null
                                 }
                             }
-                        )
+
+                            LaunchedEffect(imageBitmap) {
+                                if (imageBitmap != null) {
+                                    val colors = extractColorsFromBitmap(imageBitmap)
+                                    dynamicColors = colors
+                                    onColorsUpdate(colors)
+                                }
+                            }
+
+                            if (imageBitmap != null) {
+                                Image(
+                                    bitmap = imageBitmap.asImageBitmap(),
+                                    contentDescription = "Album Art",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Text("⚠️", fontSize = 80.sp, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.Center))
+                            }
+                        } else {
+                            var imageLoaded by remember(currentArtwork) { mutableStateOf(false) }
+
+                            AsyncImage(
+                                model = currentArtwork,
+                                contentDescription = "Album Art",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                                onSuccess = { state ->
+                                    if (!imageLoaded) {
+                                        imageLoaded = true
+                                        val drawable = state.result.drawable
+
+                                        val bitmap = when (drawable) {
+                                            is android.graphics.drawable.BitmapDrawable -> {
+                                                drawable.bitmap
+                                            }
+                                            else -> {
+                                                try {
+                                                    val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 100
+                                                    val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 100
+                                                    val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                                                    val canvas = android.graphics.Canvas(bmp)
+                                                    drawable.setBounds(0, 0, canvas.width, canvas.height)
+                                                    drawable.draw(canvas)
+                                                    bmp
+                                                } catch (_: Exception) {
+                                                    null
+                                                }
+                                            }
+                                        }
+
+                                        bitmap?.let {
+                                            val colors = extractColorsFromBitmap(it)
+                                            dynamicColors = colors
+                                            onColorsUpdate(colors)
+                                        }
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = mediaInfo?.title ?: "No Track",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = textColor,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-
-                if (mediaInfo != null && !mediaInfo.artist.isNullOrBlank()) {
+                // Animated text transitions
+                AnimatedContent(
+                    targetState = mediaInfo?.title,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(400)) togetherWith
+                                fadeOut(animationSpec = tween(200))
+                    },
+                    label = "title_transition"
+                ) { title ->
                     Text(
-                        text = mediaInfo.artist,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textColor.copy(alpha = 0.9f),
+                        text = title ?: "No Track",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = textColor,
+                        fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     )
+                }
+
+                if (mediaInfo != null && !mediaInfo.artist.isNullOrBlank()) {
+                    AnimatedContent(
+                        targetState = mediaInfo.artist,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(400, delayMillis = 100)) togetherWith
+                                    fadeOut(animationSpec = tween(200))
+                        },
+                        label = "artist_transition"
+                    ) { artist ->
+                        Text(
+                            text = artist,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = textColor.copy(alpha = 0.9f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -484,11 +611,20 @@ fun NowPlayingCard(
                             .size(56.dp)
                             .background(accentColor, CircleShape)
                     ) {
-                        Text(
-                            if (mediaInfo?.status == "Playing") "⏸" else "▶",
-                            fontSize = 28.sp,
-                            color = getContrastingColor(accentColor)
-                        )
+                        AnimatedContent(
+                            targetState = mediaInfo?.status == "Playing",
+                            transitionSpec = {
+                                fadeIn(tween(200)) + scaleIn(tween(200)) togetherWith
+                                        fadeOut(tween(200)) + scaleOut(tween(200))
+                            },
+                            label = "play_pause_icon"
+                        ) { isPlaying ->
+                            Text(
+                                if (isPlaying) "⏸" else "▶",
+                                fontSize = 28.sp,
+                                color = getContrastingColor(accentColor)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(16.dp))
@@ -674,4 +810,76 @@ fun formatTime(microseconds: Double?): String {
     val mins = seconds / 60
     val secs = seconds % 60
     return "$mins:${secs.toString().padStart(2, '0')}"
+}
+
+@Composable
+fun SettingsButton(onClick: () -> Unit, dynamicColors: DynamicColors = DynamicColors()) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onClick() }
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "⚙️ Settings",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "→",
+                fontSize = 24.sp,
+                color = dynamicColors.primary
+            )
+        }
+    }
+}
+
+@Composable
+fun SettingsScreen(
+    viewModel: MainViewModel,
+    onConnect: (String, String, String) -> Unit,
+    onBackClick: () -> Unit
+) {
+    val connectionStatus by viewModel.connectionStatus
+    val dynamicColors = remember { mutableStateOf(DynamicColors()) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Header with back button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(dynamicColors.value.background)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBackClick) {
+                Text(
+                    text = "←",
+                    fontSize = 32.sp,
+                    color = dynamicColors.value.primary
+                )
+            }
+            Text(
+                text = "⚙️ Settings",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = dynamicColors.value.primary,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+
+        // Connection Card
+        ConnectionCard(isConnected = connectionStatus, onConnect = onConnect, dynamicColors = dynamicColors.value)
+    }
 }

@@ -25,6 +25,10 @@ import androidx.compose.ui.unit.dp
 import com.blitzapp.remote.ui.*
 import com.blitzapp.remote.ui.theme.BlitzAppTheme
 
+enum class Screen {
+    MAIN, SETTINGS
+}
+
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -36,24 +40,40 @@ class MainActivity : ComponentActivity() {
 
         webSocketManager = WebSocketManager(viewModel)
 
+        // Auto-connect on app load with default settings
+        val defaultUrl = "ws://192.168.1.109:8765/ws"
+        webSocketManager.connect(defaultUrl)
+
         setContent {
             BlitzAppTheme {
                 val windowSizeClass = calculateWindowSizeClass(this)
+                val currentScreen = remember { mutableStateOf(Screen.MAIN) }
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(
-                        viewModel = viewModel,
-                        widthSizeClass = windowSizeClass.widthSizeClass,
-                        onConnect = { ip, port, path ->
-                            val url = "ws://$ip:$port$path"
-                            webSocketManager.connect(url)
-                        },
-                        onCommand = { command ->
-                            webSocketManager.sendCommand(command)
-                        }
-                    )
+                    when (currentScreen.value) {
+                        Screen.MAIN -> MainScreen(
+                            viewModel = viewModel,
+                            widthSizeClass = windowSizeClass.widthSizeClass,
+                            onConnect = { ip, port, path ->
+                                val url = "ws://$ip:$port$path"
+                                webSocketManager.connect(url)
+                            },
+                            onCommand = { command ->
+                                webSocketManager.sendCommand(command)
+                            },
+                            onSettingsClick = { currentScreen.value = Screen.SETTINGS }
+                        )
+                        Screen.SETTINGS -> SettingsScreen(
+                            viewModel = viewModel,
+                            onConnect = { ip, port, path ->
+                                val url = "ws://$ip:$port$path"
+                                webSocketManager.connect(url)
+                            },
+                            onBackClick = { currentScreen.value = Screen.MAIN }
+                        )
+                    }
                 }
             }
         }
@@ -65,9 +85,11 @@ fun MainScreen(
     viewModel: MainViewModel,
     widthSizeClass: WindowWidthSizeClass,
     onConnect: (String, String, String) -> Unit,
-    onCommand: (String) -> Unit
+    onCommand: (String) -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val connectionStatus by viewModel.connectionStatus
+    val isConnecting by viewModel.isConnecting
     val mediaInfo by viewModel.mediaInfo
     val bluetoothDevices by viewModel.bluetoothDevices
     val wifiInfo by viewModel.wifiInfo
@@ -81,12 +103,12 @@ fun MainScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         when (widthSizeClass) {
             WindowWidthSizeClass.Compact -> {
-                PortraitLayout(mediaInfo, bluetoothDevices, commandOutput, error, connectionStatus, onConnect, onCommand, artWork, dynamicColors.value) { newColors ->
+                PortraitLayout(mediaInfo, bluetoothDevices, commandOutput, error, connectionStatus, isConnecting, onConnect, onCommand, artWork, dynamicColors.value, onSettingsClick) { newColors ->
                     dynamicColors.value = newColors
                 }
             }
             else -> {
-                LandscapeLayout(mediaInfo, bluetoothDevices, commandOutput, error, connectionStatus, onConnect, onCommand, artWork, dynamicColors.value) { newColors ->
+                LandscapeLayout(mediaInfo, bluetoothDevices, commandOutput, error, connectionStatus, isConnecting, onConnect, onCommand, artWork, dynamicColors.value, onSettingsClick) { newColors ->
                     dynamicColors.value = newColors
                 }
             }
@@ -102,10 +124,12 @@ fun PortraitLayout(
     commandOutput: String?,
     error: String?,
     connectionStatus: Boolean,
+    isConnecting: Boolean,
     onConnect: (String, String, String) -> Unit,
     onCommand: (String) -> Unit,
     artWork: ArtWork?,
     dynamicColors: DynamicColors,
+    onSettingsClick: () -> Unit,
     onColorsUpdate: (DynamicColors) -> Unit
 ) {
     LazyVerticalStaggeredGrid(
@@ -117,7 +141,14 @@ fun PortraitLayout(
     ) {
         // Header - Full width
         item(span = StaggeredGridItemSpan.FullLine) {
-            Header(dynamicColors = dynamicColors)
+            Header(dynamicColors = dynamicColors, onSettingsClick = onSettingsClick, isConnected = connectionStatus)
+        }
+
+        // Connecting Card - Full width (shown when connecting, hidden when connected)
+        if (isConnecting && !connectionStatus) {
+            item(span = StaggeredGridItemSpan.FullLine) {
+                ConnectingCard()
+            }
         }
 
         // Error Card - Full width
@@ -125,11 +156,6 @@ fun PortraitLayout(
             item(span = StaggeredGridItemSpan.FullLine) {
                 ErrorCard(error = error)
             }
-        }
-
-        // Connection Card - Full width
-        item(span = StaggeredGridItemSpan.FullLine) {
-            ConnectionCard(isConnected = connectionStatus, onConnect = onConnect, dynamicColors = dynamicColors)
         }
 
         // Now Playing - Full width (main tile)
@@ -165,10 +191,12 @@ fun LandscapeLayout(
     commandOutput: String?,
     error: String?,
     connectionStatus: Boolean,
+    isConnecting: Boolean,
     onConnect: (String, String, String) -> Unit,
     onCommand: (String) -> Unit,
     artWork: ArtWork?,
     dynamicColors: DynamicColors,
+    onSettingsClick: () -> Unit,
     onColorsUpdate: (DynamicColors) -> Unit
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
@@ -177,8 +205,13 @@ fun LandscapeLayout(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
         ) {
-            Header(dynamicColors = dynamicColors)
-            ConnectionCard(isConnected = connectionStatus, onConnect = onConnect, dynamicColors = dynamicColors)
+            Header(dynamicColors = dynamicColors, onSettingsClick = onSettingsClick, isConnected = connectionStatus)
+
+            // Connecting Card (shown when connecting, hidden when connected)
+            if (isConnecting && !connectionStatus) {
+                ConnectingCard()
+            }
+
             NowPlayingCard(mediaInfo = mediaInfo, onCommand = onCommand, onColorsUpdate = onColorsUpdate)
         }
         Column(
@@ -187,10 +220,16 @@ fun LandscapeLayout(
                 .verticalScroll(rememberScrollState())
                 .padding(top = 80.dp)
         ) {
-            ErrorCard(error = error)
-            BluetoothDevicesCard(devices = bluetoothDevices, dynamicColors = dynamicColors)
+            if (!error.isNullOrEmpty()) {
+                ErrorCard(error = error)
+            }
+            if (bluetoothDevices.isNotEmpty()) {
+                BluetoothDevicesCard(devices = bluetoothDevices, dynamicColors = dynamicColors)
+            }
             QuickActionsCard(onCommand = onCommand, dynamicColors = dynamicColors)
-            SystemOutputCard(output = commandOutput, dynamicColors = dynamicColors)
+            if (!commandOutput.isNullOrEmpty()) {
+                SystemOutputCard(output = commandOutput, dynamicColors = dynamicColors)
+            }
         }
     }
 }
