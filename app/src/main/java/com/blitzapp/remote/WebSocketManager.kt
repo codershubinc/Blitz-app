@@ -4,7 +4,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.google.gson.Gson
-import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -100,27 +99,38 @@ class WebSocketManager(private val viewModel: MainViewModel) {
 
     private fun parseMessage(json: String) {
         try {
-            val data = gson.fromJson(json, JsonObject::class.java)
-            when (data.get("status")?.asString) {
-                "player" -> {
-                    val playerOutput = data.getAsJsonObject("output")
-                    val artwork = data.get("artwork")?.asString
-                    val mediaInfo = gson.fromJson(playerOutput, MediaInfo::class.java)
-                    viewModel.updateMediaInfo(mediaInfo)
-                    viewModel.updateArtWork(ArtWork(artwork))
+            // Parse as RawServerResponse wrapper
+            val serverResponse = gson.fromJson(json, RawServerResponse::class.java)
+
+            when (serverResponse.message) {
+                "media_info" -> {
+                    // Parse the data field as MediaInfo
+                    if (serverResponse.data != null) {
+                        val mediaInfo = gson.fromJson(serverResponse.data, MediaInfo::class.java)
+                        viewModel.updateMediaInfo(mediaInfo)
+                        mediaInfo.albumArt?.let { artwork ->
+                            viewModel.updateArtWork(ArtWork(artwork))
+                        }
+                    }
                 }
                 "bluetooth" -> {
-                    val deviceListType = object : TypeToken<List<BluetoothDevice>>() {}.type
-                    val devices = gson.fromJson<List<BluetoothDevice>>(data.get("bluetooth"), deviceListType)
-                    viewModel.updateBluetoothDevices(devices.filter { it.connected })
+                    if (serverResponse.data != null) {
+                        val deviceListType = object : TypeToken<List<BluetoothDevice>>() {}.type
+                        val devices = gson.fromJson<List<BluetoothDevice>>(serverResponse.data, deviceListType)
+                        viewModel.updateBluetoothDevices(devices.filter { it.connected })
+                    }
                 }
                 "wifi" -> {
-                    val wifiInfo = gson.fromJson(data.getAsJsonObject("wifi"), WiFiInfo::class.java)
-                    viewModel.updateWifiInfo(wifiInfo)
+                    if (serverResponse.data != null) {
+                        val wifiInfo = gson.fromJson(serverResponse.data, WiFiInfo::class.java)
+                        viewModel.updateWifiInfo(wifiInfo)
+                    }
                 }
                 "command_output" -> {
-                    val output = data.get("output").asString
-                    viewModel.updateCommandOutput(output)
+                    serverResponse.data?.let { dataElement ->
+                        val output = dataElement.asString
+                        viewModel.updateCommandOutput(output)
+                    }
                 }
             }
         } catch (e: Exception) {

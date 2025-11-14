@@ -357,6 +357,7 @@ fun NowPlayingCard(
             val artworkData = mediaInfo?.albumArt
             val isPlaying = mediaInfo?.status == "Playing"
 
+            // Debug logging
             // Animated blur value based on playing state
             val blurAmount by animateDpAsState(
                 targetValue = if (isPlaying) 30.dp else 50.dp,

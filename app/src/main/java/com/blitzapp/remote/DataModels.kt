@@ -1,6 +1,21 @@
 package com.blitzapp.remote
 
 import com.google.gson.annotations.SerializedName
+import com.google.gson.JsonElement
+
+// Generic server response wrapper
+data class ServerResponse<T>(
+    @SerializedName("status") val status: String,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: T? = null
+)
+
+// Non-generic version for initial parsing
+data class RawServerResponse(
+    @SerializedName("status") val status: String,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: JsonElement? = null
+)
 
 data class ArtWork(
     val url: String?
@@ -13,7 +28,8 @@ data class MediaInfo(
     @SerializedName("Artwork") val albumArt: String?,
     @SerializedName("Length") val duration: Double?,
     @SerializedName("Position") val position: Double?,
-    @SerializedName("Status") val status: String?
+    @SerializedName("Status") val status: String?,
+    @SerializedName("Player") val player: String? = null
 )
 
 data class BluetoothDevice(
