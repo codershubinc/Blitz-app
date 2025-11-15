@@ -1,4 +1,4 @@
-package tech.codershubinc.blitzapp
+package com.quazaar.remote
 
 import org.junit.Test
 

@@ -1,4 +1,4 @@
-package com.blitzapp.remote.ui.theme
+package com.quazaar.remote.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

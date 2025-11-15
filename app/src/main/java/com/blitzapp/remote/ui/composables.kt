@@ -1,4 +1,4 @@
-package com.blitzapp.remote.ui
+package com.quazaar.remote.ui
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -30,11 +30,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.blitzapp.remote.BluetoothDevice
-import com.blitzapp.remote.MediaInfo
-import com.blitzapp.remote.MainViewModel
-import com.blitzapp.remote.WiFiInfo
-import com.blitzapp.remote.ui.theme.*
+import com.quazaar.remote.BluetoothDevice
+import com.quazaar.remote.MediaInfo
+import com.quazaar.remote.MainViewModel
+import com.quazaar.remote.WiFiInfo
+import com.quazaar.remote.ui.theme.*
 import androidx.compose.ui.draw.clip
 
 // Dynamic color data class
@@ -219,7 +219,7 @@ fun Header(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "⚡ BLITZ REMOTE",
+            text = "⚡ QUAZAAR REMOTE",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,

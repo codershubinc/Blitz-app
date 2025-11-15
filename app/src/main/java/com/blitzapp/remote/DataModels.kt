@@ -1,4 +1,4 @@
-package com.blitzapp.remote
+package com.quazaar.remote
 
 import com.google.gson.annotations.SerializedName
 import com.google.gson.JsonElement

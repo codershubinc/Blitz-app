@@ -1,10 +1,10 @@
 # BlitzApp Documentation
 
-Welcome to the BlitzApp documentation! This document provides a comprehensive overview of the app's structure, components, and functionality. It's designed to help you understand how the app is built and how to extend it.
+Welcome to the Quazaar documentation! This document provides a comprehensive overview of the app's structure, components, and functionality. It's designed to help you understand how the app is built and how to extend it.
 
 ## Project Overview
 
-BlitzApp is a remote control application for your computer. It connects to a WebSocket server, allowing you to control media playback, view system information, and execute quick actions from your Android device.
+Quazaar is a remote control application for your computer. It connects to a WebSocket server, allowing you to control media playback, view system information, and execute quick actions from your Android device.
 
 ## Project Structure
 
@@ -63,7 +63,7 @@ The UI is built entirely with Jetpack Compose. The `composables.kt` file contain
 
 ### Dynamic Colors Feature
 
-One of the standout features of BlitzApp is its dynamic color theming based on album artwork. When media is playing, the app extracts the dominant color from the album art and uses it to theme the UI elements.
+One of the standout features of Quazaar is its dynamic color theming based on album artwork. When media is playing, the app extracts the dominant color from the album art and uses it to theme the UI elements.
 
 How it works:
 - For base64 encoded images (data: URLs), the bitmap is decoded directly and colors are extracted in a `LaunchedEffect`.
@@ -98,4 +98,4 @@ To add new features:
 - Create new composables in `composables.kt`.
 - Modify `WebSocketManager.kt` to send/receive new messages.
 
-This documentation should give you a solid starting point for understanding and modifying the BlitzApp. If you have any more questions, feel free to ask!
+This documentation should give you a solid starting point for understanding and modifying the Quazaar. If you have any more questions, feel free to ask!

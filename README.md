@@ -1,6 +1,6 @@
-# BlitzApp Remote
+# Quazaar Remote
 
-BlitzApp is an Android application that acts as a remote control for your computer. It connects to a WebSocket server, allowing you to control media playback, view system information, and execute quick actions from your Android device.
+Quazaar is an Android application that acts as a remote control for your computer. It connects to a WebSocket server, allowing you to control media playback, view system information, and execute quick actions from your Android device.
 
 ## ✨ Features
 
@@ -25,13 +25,13 @@ To build and run this project, you will need:
 
 1.  Android Studio Iguana | 2023.2.1 or later.
 2.  A connected Android device or emulator.
-3.  A running instance of the corresponding BlitzApp server on your computer.
+3.  A running instance of the corresponding Quazaar server on your computer.
 
 **Steps:**
 
 1.  Clone the repository.
 2.  Open the project in Android Studio.
-3.  In `app/src/main/java/com/blitzapp/remote/MainActivity.kt`, update the `defaultUrl` with the IP address and port of your server.
+3.  In `app/src/main/java/com/quazaar/remote/MainActivity.kt`, update the `defaultUrl` with the IP address and port of your server.
     ```kotlin
     val defaultUrl = "ws://YOUR_COMPUTER_IP:8765/ws"
     ```
@@ -42,8 +42,8 @@ To build and run this project, you will need:
 
 The project is organized into the following key files:
 
-*   `app/src/main/java/com/blitzapp/remote/MainActivity.kt`: The main entry point of the app.
-*   `app/src/main/java/com/blitzapp/remote/MainViewModel.kt`: Manages the application's state.
-*   `app/src/main/java/com/blitzapp/remote/WebSocketManager.kt`: Handles WebSocket communication.
-*   `app/src/main/java/com/blitzapp/remote/DataModels.kt`: Defines the data structures for the app.
-*   `app/src/main/java/com/blitzapp/remote/ui/composables.kt`: Contains all the Jetpack Compose UI components.
+*   `app/src/main/java/com/quazaar/remote/MainActivity.kt`: The main entry point of the app.
+*   `app/src/main/java/com/quazaar/remote/MainViewModel.kt`: Manages the application's state.
+*   `app/src/main/java/com/quazaar/remote/WebSocketManager.kt`: Handles WebSocket communication.
+*   `app/src/main/java/com/quazaar/remote/DataModels.kt`: Defines the data structures for the app.
+*   `app/src/main/java/com/quazaar/remote/ui/composables.kt`: Contains all the Jetpack Compose UI components.

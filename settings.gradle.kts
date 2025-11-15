@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BlitzApp"
+rootProject.name = "Quazaar"
 include(":app")

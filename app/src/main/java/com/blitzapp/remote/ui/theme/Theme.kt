@@ -1,4 +1,4 @@
-package com.blitzapp.remote.ui.theme
+package com.quazaar.remote.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -39,7 +39,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun BlitzAppTheme(
+fun QuazaarTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {

@@ -1,4 +1,4 @@
-package com.blitzapp.remote
+package com.quazaar.remote
 
 import android.os.Handler
 import android.os.Looper

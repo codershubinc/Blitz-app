@@ -1,4 +1,4 @@
-package com.blitzapp.remote
+package com.quazaar.remote
 
 import android.os.Bundle
 import android.view.WindowManager
@@ -22,8 +22,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.blitzapp.remote.ui.*
-import com.blitzapp.remote.ui.theme.BlitzAppTheme
+import com.quazaar.remote.ui.*
+import com.quazaar.remote.ui.theme.QuazaarTheme
 
 enum class Screen {
     MAIN, SETTINGS
@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
         webSocketManager.connect(defaultUrl)
 
         setContent {
-            BlitzAppTheme {
+            QuazaarTheme {
                 val windowSizeClass = calculateWindowSizeClass(this)
                 val currentScreen = remember { mutableStateOf(Screen.MAIN) }
                 Surface(

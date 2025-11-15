@@ -1,4 +1,4 @@
-package com.blitzapp.remote
+package com.quazaar.remote
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel

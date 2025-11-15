@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.blitzapp.remote"
+    namespace = "com.quazaar.remote"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.blitzapp.remote"
+        applicationId = "com.quazaar.remote"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

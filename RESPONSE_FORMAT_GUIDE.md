@@ -2,7 +2,7 @@
 
 ## Updated Player Response Structure
 
-The BlitzApp now expects player data wrapped in a `ServerResponse` structure matching your Go backend.
+The Quazaar now expects player data wrapped in a `ServerResponse` structure matching your Go backend.
 
 ### Complete Server Response Format
 
